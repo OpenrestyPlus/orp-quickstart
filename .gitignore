@@ -1,5 +1,6 @@
 .env
 runtime/
+openresty-plus/
 orp-backend/
 orp-frontend/
 orp-node-agent/

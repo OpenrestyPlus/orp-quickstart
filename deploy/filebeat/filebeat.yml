@@ -1,0 +1,29 @@
+filebeat.inputs:
+  - type: filestream
+    id: openresty-access
+    paths: ["/var/log/nginx/*.access.log"]
+    fields_under_root: true
+    fields:
+      openresty_log_type: access
+  - type: filestream
+    id: openresty-error
+    paths: ["/var/log/nginx/*.error.log"]
+    fields_under_root: true
+    fields:
+      openresty_log_type: error
+
+processors:
+  - add_fields:
+      target: openresty
+      fields:
+        node_name: ${FILEBEAT_NODE_NAME}
+        node_id: ${FILEBEAT_NODE_ID}
+  - add_host_metadata: {}
+
+output.kafka:
+  hosts: ["${FILEBEAT_KAFKA_HOSTS}"]
+  topic: "${FILEBEAT_KAFKA_TOPIC}"
+  required_acks: 1
+  compression: gzip
+  codec.json:
+    pretty: false
