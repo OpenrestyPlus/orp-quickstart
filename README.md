@@ -4,10 +4,33 @@
 
 | 方式 | 用途 | 命令 |
 | --- | --- | --- |
+| Release 二进制启动 | 使用预编译的 Go 程序连接已配置的外部中间件 | `./quickstart.sh` |
 | 源码启动 | 从 `openresty-plus` 拉取源码，在本机编译单体程序 | `./scripts/start-source.sh` |
 | Compose 镜像启动 | 使用 Release/Beta 镜像启动管理平台及演示节点 | `docker compose up -d` |
 
 镜像模式和源码模式都会在 Linux Docker Engine 上启动 MySQL、Redis、Kafka、三个 OpenResty 演示节点及 Filebeat。各服务使用 host network，主机需预留 3306、6379、8081、9092、18080–18082、18180–18182、18280–18282 端口。Docker Desktop 需要启用 Host Networking。源码模式额外需要 Go 1.26.1、Node.js 22.18+ 或 24.12+、pnpm 11.16.0。
+
+## Release 二进制启动
+
+准备运行环境配置：
+
+```sh
+cp .env.binary.example .env
+```
+
+编辑 `.env`，填写外部 MySQL 的 JDBC 地址、用户名和密码，Kafka broker 地址与 topic，Redis 地址，以及管理员密码和 64 位数据密钥。MySQL、Kafka 和 Redis 必须已启动，脚本会在启动前检查配置并检查对应 TCP 端口是否可达。
+
+将 Release 中的 Linux 可执行文件放入 `bin/openresty-plus`；也可以在 `.env` 中设置 `OPENRESTY_PLUS_BINARY_URL`，让脚本下载二进制。`OPENRESTY_PLUS_BINARY_PATH` 可改为其他本地文件路径。
+
+```sh
+./quickstart.sh
+./quickstart.sh status
+./quickstart.sh logs -f
+./quickstart.sh restart
+./quickstart.sh stop
+```
+
+默认命令为后台启动，管理界面和 API 地址由 `OPENRESTY_HTTP_ADDR` 决定，默认是 http://127.0.0.1:8081。该模式只启动 OpenResty Plus 应用进程，不会启动或管理中间件容器。
 
 ## 源码启动
 
