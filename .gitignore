@@ -1,0 +1,6 @@
+.env
+runtime/
+orp-backend/
+orp-frontend/
+orp-node-agent/
+orp-nginx-importer/
