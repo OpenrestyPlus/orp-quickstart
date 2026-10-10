@@ -60,7 +60,7 @@ def main():
                 break
     if not password:
         raise RuntimeError("找不到本地管理员密码；请设置 OPENRESTY_ADMIN_PASSWORD")
-    login = {"username": os.environ.get("OPENRESTY_ADMIN_USERNAME", "vben"), "password": password}
+    login = {"username": os.environ.get("OPENRESTY_ADMIN_USERNAME", "admin"), "password": password}
     if os.environ.get("OPENRESTY_ADMIN_OTP_CODE"):
         login["otpCode"] = os.environ["OPENRESTY_ADMIN_OTP_CODE"]
     token = request("/auth/login", data=login)["accessToken"]
