@@ -13,15 +13,11 @@ fi
 command -v openssl >/dev/null 2>&1 || { printf '缺少命令：openssl\n' >&2; exit 1; }
 admin_password=$(openssl rand -hex 18)
 data_key=$(openssl rand -hex 32)
-mysql_password=$(openssl rand -hex 18)
-mysql_root_password=$(openssl rand -hex 18)
 
-awk -v admin="$admin_password" -v key="$data_key" -v mysql="$mysql_password" -v root="$mysql_root_password" '
+awk -v admin="$admin_password" -v key="$data_key" '
   /^ADMIN_PASSWORD=/ { print "ADMIN_PASSWORD=" admin; next }
   /^DATA_KEY=/ { print "DATA_KEY=" key; next }
-  /^MYSQL_PASSWORD=/ { print "MYSQL_PASSWORD=" mysql; next }
-  /^MYSQL_ROOT_PASSWORD=/ { print "MYSQL_ROOT_PASSWORD=" root; next }
   { print }
 ' "$template" > "$env_file"
 chmod 600 "$env_file"
-printf '已创建 %s 并生成管理员、数据库和数据加密密钥。请先编辑镜像仓库地址，再启动 Compose。\n' "$env_file"
+printf '已创建 %s 并生成管理员密码和数据加密密钥。请填写外部中间件连接信息及镜像仓库地址，再启动 Compose。\n' "$env_file"

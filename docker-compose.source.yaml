@@ -1,53 +1,8 @@
 name: openresty-plus
 
 services:
-  mysql:
-    image: mysql:8.4
-    network_mode: host
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-openresty-plus}
-      MYSQL_USER: ${MYSQL_USER:-openresty-plus}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先配置 .env}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请先配置 .env}
-    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-    restart: unless-stopped
-
-  redis:
-    image: redis:7.4-alpine
-    network_mode: host
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
-  kafka:
-    image: apache/kafka:3.9.1
-    network_mode: host
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-    volumes:
-      - kafka-data:/var/lib/kafka/data
-    restart: unless-stopped
-
   openresty-east-1:
+    profiles: [demos]
     container_name: openresty-plus-openresty-east-1
     image: openresty-plus-runtime:source
     build:
@@ -70,6 +25,7 @@ services:
     restart: unless-stopped
 
   openresty-east-2:
+    profiles: [demos]
     container_name: openresty-plus-openresty-east-2
     image: openresty-plus-runtime:source
     build:
@@ -91,6 +47,7 @@ services:
     restart: unless-stopped
 
   openresty-east-3:
+    profiles: [demos]
     container_name: openresty-plus-openresty-east-3
     image: openresty-plus-runtime:source
     build:
@@ -112,48 +69,46 @@ services:
     restart: unless-stopped
 
   filebeat-east-1:
+    profiles: [demos]
     image: openresty-plus-filebeat:source
     build: ./deploy/filebeat
     network_mode: host
     environment:
       FILEBEAT_NODE_ID: ${FILEBEAT_EAST_1_NODE_ID:-}
       FILEBEAT_NODE_NAME: openresty-east-1
-      FILEBEAT_KAFKA_HOSTS: 127.0.0.1:9092
-      FILEBEAT_KAFKA_TOPIC: dtl-602-openresty-plus
+      FILEBEAT_KAFKA_HOSTS: ${FILEBEAT_KAFKA_HOSTS:?请配置 FILEBEAT_KAFKA_HOSTS}
+      FILEBEAT_KAFKA_TOPIC: ${OPENRESTY_KAFKA_TOPIC:?请在 .env 中填写 OPENRESTY_KAFKA_TOPIC}
     volumes:
       - ./runtime/openresty-east-1/log:/var/log/nginx:ro
-    depends_on: [openresty-east-1, kafka]
+    depends_on: [openresty-east-1]
     restart: unless-stopped
 
   filebeat-east-2:
+    profiles: [demos]
     image: openresty-plus-filebeat:source
     build: ./deploy/filebeat
     network_mode: host
     environment:
       FILEBEAT_NODE_ID: ${FILEBEAT_EAST_2_NODE_ID:-}
       FILEBEAT_NODE_NAME: openresty-east-2
-      FILEBEAT_KAFKA_HOSTS: 127.0.0.1:9092
-      FILEBEAT_KAFKA_TOPIC: dtl-602-openresty-plus
+      FILEBEAT_KAFKA_HOSTS: ${FILEBEAT_KAFKA_HOSTS:?请配置 FILEBEAT_KAFKA_HOSTS}
+      FILEBEAT_KAFKA_TOPIC: ${OPENRESTY_KAFKA_TOPIC:?请在 .env 中填写 OPENRESTY_KAFKA_TOPIC}
     volumes:
       - ./runtime/openresty-east-2/log:/var/log/nginx:ro
-    depends_on: [openresty-east-2, kafka]
+    depends_on: [openresty-east-2]
     restart: unless-stopped
 
   filebeat-east-3:
+    profiles: [demos]
     image: openresty-plus-filebeat:source
     build: ./deploy/filebeat
     network_mode: host
     environment:
       FILEBEAT_NODE_ID: ${FILEBEAT_EAST_3_NODE_ID:-}
       FILEBEAT_NODE_NAME: openresty-east-3
-      FILEBEAT_KAFKA_HOSTS: 127.0.0.1:9092
-      FILEBEAT_KAFKA_TOPIC: dtl-602-openresty-plus
+      FILEBEAT_KAFKA_HOSTS: ${FILEBEAT_KAFKA_HOSTS:?请配置 FILEBEAT_KAFKA_HOSTS}
+      FILEBEAT_KAFKA_TOPIC: ${OPENRESTY_KAFKA_TOPIC:?请在 .env 中填写 OPENRESTY_KAFKA_TOPIC}
     volumes:
       - ./runtime/openresty-east-3/log:/var/log/nginx:ro
-    depends_on: [openresty-east-3, kafka]
+    depends_on: [openresty-east-3]
     restart: unless-stopped
-
-volumes:
-  mysql-data:
-  redis-data:
-  kafka-data:

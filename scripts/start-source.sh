@@ -20,18 +20,13 @@ fi
 if [[ ! -f "$root/.env" ]]; then
   admin_password=$(openssl rand -hex 18)
   data_key=$(openssl rand -hex 32)
-  mysql_password=$(openssl rand -hex 18)
-  mysql_root_password=$(openssl rand -hex 18)
-  awk -v admin="$admin_password" -v key="$data_key" -v mysql="$mysql_password" -v root="$mysql_root_password" '
-    /^MYSQL_PASSWORD=/ { print "MYSQL_PASSWORD=" mysql; next }
-    /^MYSQL_ROOT_PASSWORD=/ { print "MYSQL_ROOT_PASSWORD=" root; next }
-    /^OPENRESTY_DB_PASSWORD=/ { print "OPENRESTY_DB_PASSWORD=" mysql; next }
+  awk -v admin="$admin_password" -v key="$data_key" '
     /^OPENRESTY_ADMIN_PASSWORD=/ { print "OPENRESTY_ADMIN_PASSWORD=" admin; next }
     /^OPENRESTY_DATA_KEY=/ { print "OPENRESTY_DATA_KEY=" key; next }
     { print }
   ' "$root/.env.source.example" > "$root/.env"
   chmod 600 "$root/.env"
-  printf '已创建本地 .env 并生成管理员密码、数据库密码和数据密钥。请检查配置后再次运行此脚本。\n'
+  printf '已创建本地 .env 并生成管理员密码和数据密钥。请填写外部 MySQL、Redis、Kafka 连接信息后再次运行此脚本。\n'
   exit 0
 fi
 

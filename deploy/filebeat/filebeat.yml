@@ -21,7 +21,7 @@ processors:
   - add_host_metadata: {}
 
 output.kafka:
-  hosts: ["${FILEBEAT_KAFKA_HOSTS}"]
+  hosts: ${FILEBEAT_KAFKA_HOSTS}
   topic: "${FILEBEAT_KAFKA_TOPIC}"
   required_acks: 1
   compression: gzip

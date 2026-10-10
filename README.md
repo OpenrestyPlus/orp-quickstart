@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | Release 二进制启动 | 使用预编译的 Go 程序连接已配置的外部中间件 | `./quickstart.sh` |
 | 源码启动 | 从 `openresty-plus` 拉取源码，在本机编译单体程序 | `./scripts/start-source.sh` |
-| Compose 镜像启动 | 使用 Release/Beta 镜像启动管理平台及演示节点 | `docker compose up -d` |
+| Compose 镜像启动 | 使用 Release/Beta 镜像启动管理平台 | `./scripts/start-compose.sh` |
 
-镜像模式和源码模式都会在 Linux Docker Engine 上启动 MySQL、Redis、Kafka、三个 OpenResty 演示节点及 Filebeat。各服务使用 host network，主机需预留 3306、6379、8081、9092、18080–18082、18180–18182、18280–18282 端口。Docker Desktop 需要启用 Host Networking。源码模式额外需要 Go 1.26.1、Node.js 22.18+ 或 24.12+、pnpm 11.16.0。
+两种模式都连接用户自行提供的 MySQL、Redis、Kafka，不会替用户启动这些中间件。启动前会检查必填连接配置和对应 TCP 端口。三个 OpenResty 演示节点及 Filebeat 默认关闭，可在 `.env` 设置 `QUICKSTART_START_DEMOS=true` 或启动时添加 `--with-demos` 开启。Filebeat 默认使用 `OPENRESTY_KAFKA_BOOTSTRAP_SERVERS` 中的 broker；如需单独指定，可编辑 `FILEBEAT_KAFKA_HOSTS` 为 JSON/YAML 列表。演示容器使用 host network；主机需预留管理平台 8081 端口，以及每个演示节点的 HTTP、Control API 端口（18080/18081、18180/18181、18280/18281）。源码模式额外需要 Go 1.26.1、Node.js 22.18+ 或 24.12+、pnpm 11.16.0 和 Docker。
 
 ## Release 二进制启动
 
@@ -38,14 +38,22 @@ cp .env.binary.example .env
 ./scripts/start-source.sh
 ```
 
-首次运行会克隆 [openresty-plus](https://github.com/OpenrestyPlus/openresty-plus) monorepo，生成本地 `.env` 中的管理员、数据库和数据加密密钥，并提示检查配置。再次运行会编译前后端单体可执行文件，构建并启动示例 OpenResty 与 Filebeat 镜像，再以前台模式运行程序。
+首次运行会克隆 [openresty-plus](https://github.com/OpenrestyPlus/openresty-plus) monorepo，生成本地 `.env` 中的管理员和数据加密密钥，并提示填写 MySQL、Redis、Kafka 外部连接配置。再次运行会先检查连接，再编译前后端单体可执行文件，最后以前台模式运行程序。默认不启动演示节点和 Filebeat。
+
+```sh
+# 源码启动，默认不启动演示服务
+./scripts/start-source.sh
+
+# 同时启动三个 OpenResty 演示节点和 Filebeat
+./scripts/start-source.sh --with-demos
+```
 
 - 管理界面和 API：http://127.0.0.1:8081
-- 默认账号：`vben`；随机密码保存在 `.env` 的 `OPENRESTY_ADMIN_PASSWORD`
-- OpenResty 节点：http://127.0.0.1:18080、http://127.0.0.1:18180、http://127.0.0.1:18280
+- 默认账号：`admin`；随机密码保存在 `.env` 的 `OPENRESTY_ADMIN_PASSWORD`
+- OpenResty 演示节点（启用 `--with-demos` 后）：http://127.0.0.1:18080、http://127.0.0.1:18180、http://127.0.0.1:18280
 - 导入器：可在镜像模式中按需启用，访问 http://127.0.0.1:8090
 
-按 Ctrl+C 停止前台程序。源码模式的 MySQL、Redis、Kafka、OpenResty 和 Filebeat 容器会保留；运行 `docker compose --env-file .env -f docker-compose.source.yaml down` 停止容器。不要添加 `-v`，否则会删除数据库和中间件数据卷。
+按 Ctrl+C 停止前台程序。演示服务可运行 `docker compose --env-file .env -f docker-compose.source.yaml --profile demos down` 停止。
 
 ## Compose 镜像启动
 
@@ -55,17 +63,23 @@ cp .env.binary.example .env
 ./scripts/init-compose-env.sh
 ```
 
-编辑 `.env`，确认 `OPENRESTY_PLUS_IMAGE` 使用主程序仓库的 Container Registry 地址，`RUNTIME_IMAGE` 和 `FILEBEAT_IMAGE` 使用本仓库的 Registry 地址。`IMAGE_TAG=latest` 表示稳定版，`IMAGE_TAG=beta` 表示 Beta。私有镜像仓库需先运行 `docker login <GitLab registry 地址>`。
+编辑 `.env`，确认 `OPENRESTY_PLUS_IMAGE` 使用主程序仓库的 Container Registry 地址，`RUNTIME_IMAGE` 和 `FILEBEAT_IMAGE` 使用本仓库的 Registry 地址，并填写 MySQL、Redis、Kafka 连接参数。`IMAGE_TAG=latest` 表示稳定版，`IMAGE_TAG=beta` 表示 Beta。私有镜像仓库需先运行 `docker login <GitLab registry 地址>`。
 
-脚本会生成管理员密码、MySQL 密码及数据密钥。`.env` 不要提交；数据库卷和 `DATA_KEY` 应一起备份，升级后继续使用原密钥。
+脚本会生成管理员密码和数据密钥。请填写外部 MySQL、Redis、Kafka 连接配置；`.env` 不要提交，升级后继续使用原 `DATA_KEY`。
 
-### 2. 拉取并启动
+### 2. 启动
 
 ```sh
-docker compose pull
-docker compose up -d
-docker compose ps
+./scripts/start-compose.sh
 ```
+
+启动脚本会检查连接配置和端口，再启动管理平台。要同时启动演示节点和 Filebeat：
+
+```sh
+./scripts/start-compose.sh --with-demos
+```
+
+也可以在 `.env` 中设置 `QUICKSTART_START_DEMOS=true`，让后续启动默认包含这些演示服务。
 
 打开 http://127.0.0.1:8081 登录。管理员账号和密码分别见 `.env` 中的 `ADMIN_USERNAME`、`ADMIN_PASSWORD`。主程序在首次启动时自动初始化数据库表结构。
 
@@ -86,7 +100,7 @@ docker compose logs -f openresty-plus
 docker compose down
 ```
 
-`docker compose down -v` 会删除 MySQL、Redis、Kafka 数据卷。
+演示服务不启动时，Compose 只运行管理平台容器。
 
 ## Release 与 Beta 镜像
 
@@ -97,12 +111,13 @@ docker compose down
 ## 目录
 
 ```text
-docker-compose.yaml            预编译镜像启动配置
-docker-compose.source.yaml     本地源码模式的演示服务配置
+docker-compose.yaml            预编译镜像和可选演示服务配置
+docker-compose.source.yaml     源码模式的可选演示服务配置
 deploy/openresty/              OpenResty 演示节点镜像与配置
 deploy/filebeat/               Filebeat 演示镜像与日志采集配置
 scripts/start-source.sh        获取源码、生成配置并启动源码模式
-scripts/dev-source.sh          编译程序并启动本地演示环境
+scripts/start-compose.sh       检查外部依赖并启动镜像模式
+scripts/dev-source.sh          检查依赖、编译并启动源码程序
 scripts/init-compose-env.sh    生成 Compose 镜像模式的本地密钥
 scripts/deploy/                节点登记、迁移及发布运维脚本
 ```
